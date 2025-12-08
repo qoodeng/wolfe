@@ -28,8 +28,10 @@ Dashboard: http://localhost:8000/dashboard
 
 ### 3. Start the Voice Agent (WebRTC)
 ```bash
+# Setup .env in the project root
+cp .env.example .env  # Add your API keys to the root .env
+
 cd reservation_agent_proj/server
-cp .env.example .env  # Add your API keys
 uv sync
 uv run bot.py --transport daily
 ```

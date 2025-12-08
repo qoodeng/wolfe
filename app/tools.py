@@ -83,7 +83,7 @@ async def make_new_reservation(account_id: str, guest_name: str, check_in_date: 
 async def edit_guest_reservation(
     account_id: str, 
     reservation_id: int, 
-    new_check_in_date: str = None, 
+    new_check_in_date: str = None, # Both are safe because we immediately check for None after
     new_room_type: str = None
 ):
     """Edits an existing reservation's date and/or room type."""

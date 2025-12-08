@@ -1,12 +1,13 @@
 # Wolfe - A Hotel and Reservation Voice Agent 
 
-A real-time voice AI agent that manages hotel reservations via natural conversation. Guests can check, create, modify, and cancel bookings by speaking to the agent live over WebRTC, with all changes reflected in a live dashboard.
+A real-time voice AI agent that manages hotel reservations via natural conversation. Guests can check, create, modify, and cancel bookings by speaking to the agent live over WebRTC or phone call, with all changes reflected in a live dashboard.
 
-**Tech Stack**: Pipecat (voice pipeline) + Deepgram STT + OpenAI GPT-4o + Cartesia TTS + Daily.co WebRTC + FastAPI + MongoDB
+**Tech Stack**: Pipecat (voice pipeline) + Deepgram STT + OpenAI GPT-4o + Cartesia TTS + Daily.co WebRTC + Twilio (telephony) + FastAPI + MongoDB
 
 ## Features
 
-- **Voice Interaction**: Natural conversation via WebRTC
+- **Voice Interaction**: Natural conversation via WebRTC or phone call
+- **Dual Transport**: WebRTC (browser) + Twilio (phone calls)
 - **Secure**: Account verification before any database access
 - **Live Dashboard**: Real-time view of reservations at `/dashboard`
 - **5 Tools**: Check account, view reservations, create, edit, cancel
@@ -25,7 +26,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 Dashboard: http://localhost:8000/dashboard
 
-### 3. Start the Voice Agent
+### 3. Start the Voice Agent (WebRTC)
 ```bash
 cd reservation_agent_proj/server
 cp .env.example .env  # Add your API keys
@@ -33,6 +34,20 @@ uv sync
 uv run bot.py --transport daily
 ```
 Voice Interface: http://localhost:7860
+
+### 3b. Start via Phone (Twilio)
+Twilio requires a public URL for webhooks. We recommend using Cloudflare Tunnel as it supports WebSockets reliably on the free tier.
+
+```bash
+# Terminal 1: Start Cloudflare Tunnel
+cloudflared tunnel --url http://localhost:7860
+# Copy the URL (e.g., https://unique-name.trycloudflare.com)
+
+# Terminal 2: Run bot with Twilio transport
+# Ensure TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are in .env
+uv run bot.py -t twilio -x unique-name.trycloudflare.com
+```
+Configure your Twilio phone number's webhook (Voice > Incoming) to point to `https://unique-name.trycloudflare.com/`.
 
 ## Required API Keys
 
@@ -42,6 +57,8 @@ Voice Interface: http://localhost:7860
 | `DEEPGRAM_API_KEY` | Speech-to-Text | [console.deepgram.com](https://console.deepgram.com) |
 | `CARTESIA_API_KEY` | Text-to-Speech | [play.cartesia.ai](https://play.cartesia.ai) |
 | `DAILY_API_KEY` | WebRTC | [dashboard.daily.co](https://dashboard.daily.co) |
+| `TWILIO_ACCOUNT_SID` | Phone Calls | [twilio.com/console](https://twilio.com/console) |
+| `TWILIO_AUTH_TOKEN` | Phone Calls | [twilio.com/console](https://twilio.com/console) |
 
 ## Project Structure
 

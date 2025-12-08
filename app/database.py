@@ -8,6 +8,7 @@ DB_NAME = "hotel_agent_db"
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
+# Creates some sample reservations for testing
 async def seed_data():
     """Seeds the database with test accounts if they don't exist."""
     accounts_collection = db["accounts"]
@@ -46,6 +47,7 @@ async def seed_data():
         }
     ]
 
+    # Insert test data into the database
     for account in test_data:
         existing = await accounts_collection.find_one({"account_id": account["account_id"]})
         if not existing:
@@ -54,5 +56,6 @@ async def seed_data():
         else:
             print(f"Account already exists: {account['account_id']}")
 
+# Returns the database object
 async def get_db():
     return db

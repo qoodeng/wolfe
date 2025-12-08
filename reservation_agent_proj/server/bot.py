@@ -20,7 +20,6 @@ import sys
 # Add parent directory to path to import from app/
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import aiohttp
 from dotenv import load_dotenv
 from loguru import logger
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
@@ -31,7 +30,7 @@ from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
-from pipecat.runner.types import DailyRunnerArguments, RunnerArguments
+from pipecat.runner.types import DailyRunnerArguments, RunnerArguments, WebSocketRunnerArguments
 from pipecat.services.cartesia.tts import CartesiaTTSService
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.services.openai.llm import OpenAILLMService
@@ -47,7 +46,10 @@ from app.tools import (
     edit_guest_reservation
 )
 
-load_dotenv(override=True)
+
+# Load .env from project root
+root_env = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+load_dotenv(root_env, override=True)
 
 
 # === PIPECAT TOOL DECORATOR ===
@@ -287,6 +289,32 @@ async def bot(runner_args: RunnerArguments):
                 params=DailyParams(
                     audio_in_enabled=True,
                     audio_out_enabled=True,
+                    vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+                    turn_analyzer=LocalSmartTurnAnalyzerV3(),
+                ),
+            )
+        case WebSocketRunnerArguments():
+            # Twilio phone call support via WebSocket
+            from pipecat.transports.websocket.fastapi import FastAPIWebsocketTransport, FastAPIWebsocketParams
+            from pipecat.serializers.twilio import TwilioFrameSerializer
+            from pipecat.runner.utils import parse_telephony_websocket
+            
+            # Parse Twilio's initial WebSocket message to extract stream_sid
+            transport_type, call_data = await parse_telephony_websocket(runner_args.websocket)
+            stream_sid = call_data.get("stream_id", "")
+            call_sid = call_data.get("call_id")
+            
+            transport = FastAPIWebsocketTransport(
+                websocket=runner_args.websocket,
+                params=FastAPIWebsocketParams(
+                    audio_in_enabled=True,
+                    audio_out_enabled=True,
+                    serializer=TwilioFrameSerializer(
+                        stream_sid=stream_sid,
+                        call_sid=call_sid,
+                        account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
+                        auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
+                    ),
                     vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
                     turn_analyzer=LocalSmartTurnAnalyzerV3(),
                 ),
